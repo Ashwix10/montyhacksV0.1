@@ -487,12 +487,20 @@ export default function CodeSandbox() {
                 <Shield className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">SecureCode Sandbox</h1>
-                <p className="text-sm text-muted-foreground">In-Browser Code Environment</p>
+                <h1 className="text-xl font-bold">CodeVault</h1>
+                <p className="text-sm text-muted-foreground">Secure Code Environment</p>
               </div>
             </div>
 
             <div className="flex items-center space-x-4">
+              {/* Navigation */}
+              <Link href="/">
+                <Button variant="ghost" size="sm" className="h-8">
+                  <Home className="w-4 h-4 mr-2" />
+                  Home
+                </Button>
+              </Link>
+
               {/* Theme Toggle */}
               <div className="flex items-center space-x-2 glass-morphism rounded-xl p-2">
                 <Button
@@ -681,6 +689,28 @@ export default function CodeSandbox() {
           </div>
         </div>
       </main>
+
+      {/* File Upload Modal */}
+      {showFileUpload && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-auto">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-bold">Upload Code Files</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFileUpload(false)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="p-6">
+              <FileUpload onFilesUploaded={handleFilesUploaded} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
