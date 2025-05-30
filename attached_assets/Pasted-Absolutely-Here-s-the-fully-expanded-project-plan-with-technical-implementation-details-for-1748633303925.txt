@@ -1,0 +1,249 @@
+Absolutely! Here's the **fully expanded project plan** with **technical implementation details** for each part, while keeping all the original components intact. This version includes deeper insights into how each part will be wired up under the hood.
+
+---
+
+# ✅ Secure In-Browser Code Sandbox with Stunning UI — Full Technical Project Plan
+
+---
+
+## 🎯 GOAL
+
+Create a **browser-only** coding environment that allows users to:
+
+* Write code in multiple languages
+* Run code **locally using WebAssembly**
+* **Scan for vulnerabilities** (no AI, no backend)
+* Display secure output in a polished, responsive UI
+
+---
+
+## 🧭 PROJECT STAGES & TIMELINE
+
+| Phase                    | Description                                   | Est. Time | Tech Stack                                                  |
+| ------------------------ | --------------------------------------------- | --------- | ----------------------------------------------------------- |
+| 1. UI/UX Layout          | Build beautiful layout + interactive controls | 2–3 days  | HTML/CSS, Tailwind, Framer Motion                           |
+| 2. Editor Setup          | Add syntax-highlighting editor (Monaco)       | 1–2 days  | [Monaco Editor](https://microsoft.github.io/monaco-editor/) |
+| 3. Code Execution        | Set up in-browser runtimes (WASM)             | 2–3 days  | Pyodide, JS runtime, Web Workers                            |
+| 4. Vulnerability Scanner | Parse & analyze AST or regex patterns         | 2–3 days  | Python `ast`, Esprima.js, custom rule engine                |
+| 5. Sandbox Protection    | Enforce time/memory/feature restrictions      | 2 days    | Web Workers, iframes, CSP headers                           |
+| 6. Output & Reporting    | Terminal-like output, vulnerability reports   | 1–2 days  | jsPDF, Blob, Highlight.js                                   |
+| 7. Final Polish          | Responsive design, dark mode, animations      | 2+ days   | Tailwind, CSS variables, transitions                        |
+
+---
+
+## 📐 UI OUTLINE & COMPONENTS
+
+### 🎨 Aesthetic Design
+
+* **Theme options:** Light, Dark, Vibe (animated gradients)
+* **Glassmorphism or neumorphism styles**
+* Responsive grid layout (mobile, tablet, desktop)
+
+---
+
+### 🧩 Interface Components (with Technical Actions)
+
+| UI Element                | Type                         | Action                                       | Implementation                                       |
+| ------------------------- | ---------------------------- | -------------------------------------------- | ---------------------------------------------------- |
+| **Language Selector**     | Dropdown                     | Loads appropriate runtime & sets syntax mode | JS state + lazy-load WASM module                     |
+| **Code Editor**           | Monaco                       | Main coding area                             | `monaco.editor.create(...)` with custom theme        |
+| **“Scan Code” Button**    | Button                       | Runs static vulnerability checks             | JS click → call AST or regex checker                 |
+| **“Run Code” Button**     | Button                       | Executes code in secure WASM sandbox         | Calls language-specific executor inside a Web Worker |
+| **“Reset Editor”**        | Button                       | Clears editor and all panels                 | `editor.setValue('')`, clear logs                    |
+| **“Export Report”**       | Button                       | Saves code, warnings, output as file         | Uses `jsPDF` or Blob to download `.txt` or `.pdf`    |
+| **“Theme Toggle”**        | Button or Switch             | Toggles between themes                       | Tailwind’s `dark:` utility or CSS variable swap      |
+| **Terminal Output**       | Scrollable div               | Shows stdout/stderr and errors               | Live appends console-like messages                   |
+| **Vulnerability Sidebar** | Panel                        | Displays all detected warnings               | Populated from scanning function output              |
+| **Security Score Bar**    | Progress bar or radial chart | Visualizes security level                    | Animates based on scoring logic                      |
+
+---
+
+## ⚙️ CODE EXECUTION (IN BROWSER)
+
+### 🧠 Python Execution
+
+* **Library:** [Pyodide](https://pyodide.org/)
+* Load via CDN (`pyodide.js`, `.wasm`)
+* Expose `pyodide.runPython(code)` and redirect `print` via `stdout_callback`
+* Execute code in a **Web Worker** to prevent crashes/hangs
+* Enforce:
+
+  * Max runtime (e.g. 3000ms via `setTimeout`)
+  * Memory cap (via Pyodide config)
+  * Remove dangerous imports (e.g. `import os`)
+
+### 🧠 JavaScript Execution
+
+* Safely evaluate JS code:
+
+```js
+const sandbox = new Worker("sandbox.js");
+sandbox.postMessage(code);
+```
+
+* Inside `sandbox.js`:
+
+```js
+self.onmessage = (e) => {
+  try {
+    const result = eval(e.data); // limited by Worker scope
+    self.postMessage({ result });
+  } catch (err) {
+    self.postMessage({ error: err.toString() });
+  }
+};
+```
+
+### 🧠 C/C++ (Optional)
+
+* Compile user code to WASM on-the-fly using tools like WebAssembly.sh or pre-compiled TinyCC
+* Not needed for MVP, but can be added later for advanced use cases
+
+---
+
+## 🔍 STATIC VULNERABILITY SCANNER (NO AI)
+
+### Techniques Used:
+
+| Method           | Tool                                              |
+| ---------------- | ------------------------------------------------- |
+| AST parsing      | Python `ast` (in Pyodide), Esprima (for JS)       |
+| Pattern matching | Regex-based checks for known bad strings          |
+| Rule Engine      | JSON rule file defining severity, hints, patterns |
+
+### Python Example (In Pyodide):
+
+```python
+import ast
+
+tree = ast.parse(code)
+for node in ast.walk(tree):
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+        if node.func.id == "eval":
+            vulnerabilities.append({
+                "line": node.lineno,
+                "type": "Use of eval()",
+                "severity": "high"
+            })
+```
+
+### JS Example:
+
+```js
+if (/eval\s*\(/.test(code)) {
+  warnings.push({ type: "eval", message: "Use of eval()", line: guessLine(code) });
+}
+```
+
+### Output Structure:
+
+```json
+[
+  { "line": 3, "type": "Hardcoded Password", "severity": "medium" },
+  { "line": 6, "type": "Eval Input", "severity": "high" }
+]
+```
+
+---
+
+## 🛡️ SANDBOXING STRATEGY
+
+| Technique             | Purpose                                              |
+| --------------------- | ---------------------------------------------------- |
+| **Web Workers**       | Isolate runtime, prevent page crash                  |
+| **WASM**              | Sandboxed execution (no DOM, FS, or network)         |
+| **Timeouts**          | Kill infinite loops or long scripts                  |
+| **Runtime Filtering** | Prevent dangerous imports (e.g., `os`, `subprocess`) |
+| **iframe (optional)** | Double-layer protection for embedded JS              |
+
+---
+
+## 📤 REPORTING & OUTPUT
+
+### Terminal Simulation:
+
+* Append output line-by-line with typewriter animation
+* Color-code:
+
+  * 🔴 `stderr`
+  * 🟢 `stdout`
+  * ⚠️ vulnerabilities
+
+### Export Report:
+
+```js
+const blob = new Blob([reportString], { type: "text/plain" });
+const url = URL.createObjectURL(blob);
+const a = document.createElement("a");
+a.href = url;
+a.download = "report.txt";
+a.click();
+```
+
+Or use `jsPDF` for a professional `.pdf`.
+
+---
+
+## 🌈 VISUAL & UX POLISH
+
+* **TailwindCSS**: Utility-first classes for fast prototyping
+* **Framer Motion or AOS.js**: Animate panel transitions
+* **CSS Variables**: Handle theme toggling
+* **Custom SVG Icons**: Use Lucide or Heroicons
+* **Neumorphic Buttons**: Soft glow, animated hover
+* **Radial score indicator**: `react-circular-progressbar` or hand-coded SVG
+
+---
+
+## 📦 FOLDER STRUCTURE
+
+```
+/public
+  index.html
+  /styles
+    tailwind.css
+    themes.css
+  /scripts
+    main.js
+    scanner.js
+    executor.js
+    utils.js
+  /runtimes
+    pyodide/
+    sandbox.js
+  /components
+    Editor.js
+    Terminal.js
+    Sidebar.js
+    Toolbar.js
+```
+
+---
+
+## 🚀 SAMPLE USER FLOW
+
+1. Open app → Select **Python**
+2. Type:
+
+   ```python
+   password = "hunter2"
+   eval(input("Enter command: "))
+   ```
+3. Click **Scan Code** → Highlights lines 1 & 2
+4. Click **Run** → Shows "Warning: use of eval" + terminal runs output
+5. Click **Export** → Saves PDF with code + scan results
+
+---
+
+## 🔮 FUTURE ADDITIONS
+
+| Feature              | Use                                         |
+| -------------------- | ------------------------------------------- |
+| Live Collaboration   | WebRTC or Yjs                               |
+| Save to LocalStorage | Resume sessions                             |
+| Challenge Mode       | “Fix this broken code” game                 |
+| Plugin System        | Add your own scan rules, themes, or linters |
+
+---
+
+Would you like a **starter GitHub repo structure** for this, or should I generate the **HTML/CSS/JS base layout** for you next?
