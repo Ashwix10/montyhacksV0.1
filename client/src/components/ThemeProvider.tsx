@@ -13,14 +13,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('code-sandbox-theme') as Theme;
-    if (savedTheme && themes[savedTheme]) {
+    const savedTheme = localStorage.getItem('codevault-theme') as Theme;
+    if (savedTheme && savedTheme in themes) {
       setTheme(savedTheme);
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('code-sandbox-theme', theme);
+    localStorage.setItem('codevault-theme', theme);
     
     // Apply theme to document
     const root = document.documentElement;
@@ -33,7 +33,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Apply CSS variables
     Object.entries(themeColors).forEach(([key, value]) => {
       if (key !== 'name' && key !== 'icon') {
-        root.style.setProperty(`--${key}`, value);
+        root.style.setProperty(`--${key}`, value as string);
       }
     });
 

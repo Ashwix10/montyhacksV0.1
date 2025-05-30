@@ -1,9 +1,12 @@
 import React, { useState, useCallback } from 'react';
-import { SupportedLanguage, TerminalLine, EditorState } from '@/types/sandbox';
+import { SupportedLanguage, TerminalLine, EditorState, CodeFile } from '@/types/sandbox';
 import { CodeEditor } from '@/components/CodeEditor';
 import { VulnerabilityPanel } from '@/components/VulnerabilityPanel';
 import { TerminalOutput } from '@/components/TerminalOutput';
 import { SecurityScore } from '@/components/SecurityScore';
+import { FileManager } from '@/components/FileManager';
+import { FileUpload } from '@/components/FileUpload';
+import { ExpandableCard } from '@/components/ExpandableModal';
 import { useTheme } from '@/components/ThemeProvider';
 import { useCodeExecution } from '@/hooks/useCodeExecution';
 import { useVulnerabilityScanner } from '@/hooks/useVulnerabilityScanner';
@@ -20,8 +23,16 @@ import {
   Shield,
   Sun,
   Moon,
-  Palette
+  Palette,
+  Home,
+  Upload,
+  Code,
+  Terminal,
+  AlertTriangle,
+  Gauge
 } from 'lucide-react';
+import { Link } from 'wouter';
+import { nanoid } from 'nanoid';
 
 const defaultCode = {
   python: `import hashlib
