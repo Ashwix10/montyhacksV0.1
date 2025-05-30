@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>SecureCode Sandbox - In-Browser Development Environment</title>
+    <meta name="description" content="A secure in-browser code sandbox with WebAssembly execution, vulnerability scanning, and modern UI. Execute Python, JavaScript, and TypeScript safely in your browser.">
+    
+    <!-- Preload Monaco Editor -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js" as="script">
+    
+    <!-- Preload Pyodide for Python execution -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js" as="script">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
+    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+  </body>
+</html>
