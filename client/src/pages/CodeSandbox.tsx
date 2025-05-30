@@ -235,6 +235,9 @@ export default function CodeSandbox() {
     reset: resetScanner
   } = useVulnerabilityScanner();
 
+  // Get current active file
+  const activeFile = editorState.files.find(f => f.id === editorState.activeFileId);
+
   const addTerminalLine = useCallback((type: TerminalLine['type'], content: string) => {
     const newLine: TerminalLine = {
       id: Date.now().toString(),
@@ -246,28 +249,64 @@ export default function CodeSandbox() {
   }, []);
 
   const handleCodeChange = useCallback((code: string) => {
-    setEditorState(prev => ({ ...prev, code }));
-  }, []);
+    if (editorState.activeFileId) {
+      setEditorState(prev => ({
+        ...prev,
+        files: prev.files.map(file => 
+          file.id === prev.activeFileId 
+            ? { ...file, content: code, lastModified: new Date() }
+            : file
+        )
+      }));
+    }
+  }, [editorState.activeFileId]);
 
   const handleLanguageChange = useCallback((language: SupportedLanguage) => {
-    const filename = `main.${language === 'python' ? 'py' : language === 'typescript' ? 'ts' : 'js'}`;
-    setEditorState(prev => ({
-      ...prev,
-      language,
-      filename,
-      code: defaultCode[language]
-    }));
-    resetScanner();
-    setTerminalLines([]);
-  }, [resetScanner]);
+    if (editorState.activeFileId) {
+      const extension = getFileExtension(language);
+      const newName = `main.${extension}`;
+      
+      setEditorState(prev => ({
+        ...prev,
+        files: prev.files.map(file => 
+          file.id === prev.activeFileId 
+            ? { ...file, language, name: newName, content: defaultCode[language], lastModified: new Date() }
+            : file
+        )
+      }));
+      resetScanner();
+      setTerminalLines([]);
+    }
+  }, [editorState.activeFileId, resetScanner]);
+
+  const getFileExtension = (language: SupportedLanguage): string => {
+    const extensions = {
+      python: 'py',
+      javascript: 'js',
+      typescript: 'ts',
+      cpp: 'cpp',
+      c: 'c',
+      java: 'java',
+      go: 'go',
+      rust: 'rs',
+      php: 'php',
+      ruby: 'rb'
+    };
+    return extensions[language];
+  };
 
   const handleScanCode = useCallback(async () => {
+    if (!activeFile) {
+      addTerminalLine('error', 'No active file to scan');
+      return;
+    }
+
     addTerminalLine('info', 'Starting security scan...');
     
     try {
       const foundVulnerabilities = await scanCodeForVulnerabilities(
-        editorState.code, 
-        editorState.language
+        activeFile.content, 
+        activeFile.language
       );
       
       if (foundVulnerabilities.length === 0) {
@@ -283,16 +322,21 @@ export default function CodeSandbox() {
     } catch (error) {
       addTerminalLine('error', `Scan failed: ${error}`);
     }
-  }, [editorState.code, editorState.language, scanCodeForVulnerabilities, addTerminalLine]);
+  }, [activeFile, scanCodeForVulnerabilities, addTerminalLine]);
 
   const handleRunCode = useCallback(async () => {
-    if (isExecuting) return;
+    if (isExecuting || !activeFile) return;
     
-    addTerminalLine('info', `Executing ${editorState.language} code...`);
+    if (!activeFile) {
+      addTerminalLine('error', 'No active file to execute');
+      return;
+    }
+    
+    addTerminalLine('info', `Executing ${activeFile.language} code...`);
     setEditorState(prev => ({ ...prev, isExecuting: true }));
     
     try {
-      const result = await executeCode(editorState.code, editorState.language);
+      const result = await executeCode(activeFile.content, activeFile.language);
       
       if (result.output) {
         addTerminalLine('output', result.output);
@@ -308,25 +352,37 @@ export default function CodeSandbox() {
     } finally {
       setEditorState(prev => ({ ...prev, isExecuting: false }));
     }
-  }, [editorState.code, editorState.language, executeCode, isExecuting, addTerminalLine]);
+  }, [activeFile, executeCode, isExecuting, addTerminalLine]);
 
   const handleReset = useCallback(() => {
+    if (!activeFile) return;
+    
     setEditorState(prev => ({
       ...prev,
-      code: defaultCode[prev.language],
+      files: prev.files.map(file => 
+        file.id === prev.activeFileId 
+          ? { ...file, content: defaultCode[file.language], lastModified: new Date() }
+          : file
+      ),
       isExecuting: false
     }));
     setTerminalLines([]);
     resetScanner();
-    addTerminalLine('info', 'Editor reset');
-  }, [resetScanner, addTerminalLine]);
+    addTerminalLine('info', 'File reset to default template');
+  }, [activeFile, resetScanner, addTerminalLine]);
 
   const handleExport = useCallback(() => {
+    if (!activeFile) {
+      addTerminalLine('error', 'No active file to export');
+      return;
+    }
+
     const report = [
-      'SecureCode Sandbox Report',
+      'CodeVault Security Report',
       '========================',
       '',
-      `Language: ${editorState.language}`,
+      `File: ${activeFile.name}`,
+      `Language: ${activeFile.language}`,
       `Generated: ${new Date().toISOString()}`,
       `Security Score: ${securityScore.overall}/100 (${securityScore.grade})`,
       '',
@@ -337,7 +393,7 @@ export default function CodeSandbox() {
       '',
       'Code:',
       '-----',
-      editorState.code,
+      activeFile.content,
       '',
       'Terminal Output:',
       '---------------',
@@ -355,14 +411,69 @@ export default function CodeSandbox() {
     URL.revokeObjectURL(url);
     
     addTerminalLine('success', 'Report exported successfully');
-  }, [editorState, securityScore, vulnerabilities, terminalLines, addTerminalLine]);
+  }, [activeFile, securityScore, vulnerabilities, terminalLines, addTerminalLine]);
 
   const clearTerminal = useCallback(() => {
     setTerminalLines([]);
-  }, []);
+    addTerminalLine('info', 'Terminal cleared');
+  }, [addTerminalLine]);
 
   const handleVulnerabilityClick = useCallback((vulnerability: any) => {
     addTerminalLine('info', `Jumping to line ${vulnerability.line}: ${vulnerability.message}`);
+  }, [addTerminalLine]);
+
+  // File management functions
+  const handleFileSelect = useCallback((fileId: string) => {
+    setEditorState(prev => ({ ...prev, activeFileId: fileId }));
+    addTerminalLine('info', `Switched to file: ${editorState.files.find(f => f.id === fileId)?.name}`);
+  }, [editorState.files, addTerminalLine]);
+
+  const handleFileCreate = useCallback((file: CodeFile) => {
+    setEditorState(prev => ({
+      ...prev,
+      files: [...prev.files, file],
+      activeFileId: file.id
+    }));
+    addTerminalLine('success', `Created new file: ${file.name}`);
+  }, [addTerminalLine]);
+
+  const handleFileDelete = useCallback((fileId: string) => {
+    const file = editorState.files.find(f => f.id === fileId);
+    if (!file) return;
+
+    setEditorState(prev => {
+      const newFiles = prev.files.filter(f => f.id !== fileId);
+      return {
+        ...prev,
+        files: newFiles,
+        activeFileId: prev.activeFileId === fileId 
+          ? (newFiles.length > 0 ? newFiles[0].id : null)
+          : prev.activeFileId
+      };
+    });
+    addTerminalLine('info', `Deleted file: ${file.name}`);
+  }, [editorState.files, addTerminalLine]);
+
+  const handleFileRename = useCallback((fileId: string, newName: string) => {
+    setEditorState(prev => ({
+      ...prev,
+      files: prev.files.map(file => 
+        file.id === fileId 
+          ? { ...file, name: newName, lastModified: new Date() }
+          : file
+      )
+    }));
+    addTerminalLine('info', `Renamed file to: ${newName}`);
+  }, [addTerminalLine]);
+
+  const handleFilesUploaded = useCallback((newFiles: CodeFile[]) => {
+    setEditorState(prev => ({
+      ...prev,
+      files: [...prev.files, ...newFiles],
+      activeFileId: newFiles.length > 0 ? newFiles[0].id : prev.activeFileId
+    }));
+    addTerminalLine('success', `Uploaded ${newFiles.length} file(s)`);
+    setShowFileUpload(false);
   }, [addTerminalLine]);
 
   return (
@@ -500,32 +611,73 @@ export default function CodeSandbox() {
             </Card>
 
             {/* Code Editor */}
-            <CodeEditor
-              code={editorState.code}
-              language={editorState.language}
-              onChange={handleCodeChange}
-              onLanguageChange={handleLanguageChange}
-              height={400}
-            />
+            {activeFile ? (
+              <ExpandableCard
+                title={`Code Editor - ${activeFile.name}`}
+                icon={<Code className="w-5 h-5" />}
+              >
+                <CodeEditor
+                  code={activeFile.content}
+                  language={activeFile.language}
+                  onChange={handleCodeChange}
+                  onLanguageChange={handleLanguageChange}
+                  height={400}
+                />
+              </ExpandableCard>
+            ) : (
+              <Card className="glass-morphism border-0">
+                <CardContent className="p-8 text-center">
+                  <Code className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg font-medium mb-2">No file selected</p>
+                  <p className="text-muted-foreground">Create or select a file to start coding</p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Terminal Output */}
-            <TerminalOutput
-              lines={terminalLines}
-              isExecuting={isExecuting || editorState.isExecuting}
-              onClear={clearTerminal}
-            />
+            <ExpandableCard
+              title="Terminal Output"
+              icon={<Terminal className="w-5 h-5" />}
+            >
+              <TerminalOutput
+                lines={terminalLines}
+                isExecuting={isExecuting || editorState.isExecuting}
+                onClear={clearTerminal}
+              />
+            </ExpandableCard>
           </div>
 
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
+            {/* File Manager */}
+            <FileManager
+              files={editorState.files}
+              activeFileId={editorState.activeFileId}
+              onFileSelect={handleFileSelect}
+              onFileCreate={handleFileCreate}
+              onFileDelete={handleFileDelete}
+              onFileRename={handleFileRename}
+              onFileUpload={() => setShowFileUpload(true)}
+            />
+
             {/* Security Score */}
-            <SecurityScore score={securityScore} />
+            <ExpandableCard
+              title="Security Score"
+              icon={<Gauge className="w-5 h-5" />}
+            >
+              <SecurityScore score={securityScore} />
+            </ExpandableCard>
 
             {/* Vulnerabilities */}
-            <VulnerabilityPanel
-              vulnerabilities={vulnerabilities}
-              onVulnerabilityClick={handleVulnerabilityClick}
-            />
+            <ExpandableCard
+              title="Vulnerabilities"
+              icon={<AlertTriangle className="w-5 h-5" />}
+            >
+              <VulnerabilityPanel
+                vulnerabilities={vulnerabilities}
+                onVulnerabilityClick={handleVulnerabilityClick}
+              />
+            </ExpandableCard>
           </div>
         </div>
       </main>

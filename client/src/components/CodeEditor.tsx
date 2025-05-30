@@ -94,8 +94,8 @@ export function CodeEditor({
 
   // Update editor when code changes externally
   useEffect(() => {
-    if (editor && editor.getValue() !== code) {
-      editor.setValue(code);
+    if (editor && code !== undefined && editor.getValue() !== code) {
+      editor.setValue(code || '');
     }
   }, [editor, code]);
 
