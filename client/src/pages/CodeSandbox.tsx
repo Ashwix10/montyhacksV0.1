@@ -34,7 +34,7 @@ import {
 import { Link } from 'wouter';
 import { nanoid } from 'nanoid';
 
-const defaultCode = {
+const defaultCode: Record<SupportedLanguage, string> = {
   python: `import hashlib
 import os
 
@@ -50,7 +50,7 @@ def authenticate(user_input):
 command = input("Enter command: ")
 eval(command)  # Security vulnerability
 
-print("Welcome to SecureCode Sandbox!")`,
+print("Welcome to CodeVault!")`,
   
   javascript: `// User authentication
 const password = "hunter2"; // Hardcoded password
@@ -67,7 +67,7 @@ function authenticate(userInput) {
 const userCommand = prompt("Enter JavaScript:");
 eval(userCommand); // Security vulnerability
 
-console.log("Welcome to SecureCode Sandbox!");`,
+console.log("Welcome to CodeVault!");`,
 
   typescript: `// User authentication
 const password: string = "hunter2"; // Hardcoded password
@@ -84,15 +84,128 @@ function authenticate(userInput: string): boolean {
 const userCommand: string = prompt("Enter TypeScript:") || "";
 eval(userCommand); // Security vulnerability
 
-console.log("Welcome to SecureCode Sandbox!");`
+console.log("Welcome to CodeVault!");`,
+
+  cpp: `#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    string password = "hunter2"; // Hardcoded password
+    string userInput;
+    
+    cout << "Enter password: ";
+    cin >> userInput;
+    
+    if (userInput == password) {
+        cout << "Welcome to CodeVault!" << endl;
+    }
+    
+    return 0;
+}`,
+
+  c: `#include <stdio.h>
+#include <string.h>
+
+int main() {
+    char password[] = "hunter2"; // Hardcoded password
+    char userInput[100];
+    
+    printf("Enter password: ");
+    scanf("%s", userInput);
+    
+    if (strcmp(userInput, password) == 0) {
+        printf("Welcome to CodeVault!\\n");
+    }
+    
+    return 0;
+}`,
+
+  java: `public class Main {
+    private static final String PASSWORD = "hunter2"; // Hardcoded password
+    
+    public static void main(String[] args) {
+        System.out.println("Welcome to CodeVault!");
+        
+        // Hardcoded credentials
+        String apiKey = "sk-1234567890";
+        
+        authenticate("user");
+    }
+    
+    public static boolean authenticate(String userInput) {
+        return PASSWORD.equals(userInput);
+    }
+}`,
+
+  go: `package main
+
+import "fmt"
+
+func main() {
+    password := "hunter2" // Hardcoded password
+    apiKey := "sk-1234567890" // Hardcoded API key
+    
+    fmt.Println("Welcome to CodeVault!")
+    
+    authenticate(password)
+}
+
+func authenticate(userInput string) bool {
+    return userInput == "hunter2"
+}`,
+
+  rust: `fn main() {
+    let password = "hunter2"; // Hardcoded password
+    let api_key = "sk-1234567890"; // Hardcoded API key
+    
+    println!("Welcome to CodeVault!");
+    
+    authenticate(password);
+}
+
+fn authenticate(user_input: &str) -> bool {
+    user_input == "hunter2"
+}`,
+
+  php: `<?php
+$password = "hunter2"; // Hardcoded password
+$apiKey = "sk-1234567890"; // Hardcoded API key
+
+function authenticate($userInput) {
+    global $password;
+    return $userInput === $password;
+}
+
+echo "Welcome to CodeVault!";
+?>`,
+
+  ruby: `# User authentication
+password = "hunter2"  # Hardcoded password
+api_key = "sk-1234567890"  # Hardcoded API key
+
+def authenticate(user_input)
+  user_input == "hunter2"
+end
+
+puts "Welcome to CodeVault!"`
 };
 
 export default function CodeSandbox() {
   const { theme, setTheme, themes } = useTheme();
+  const defaultFileId = nanoid();
   const [editorState, setEditorState] = useState<EditorState>({
-    code: defaultCode.python,
-    language: 'python',
-    filename: 'main.py',
+    files: [
+      {
+        id: defaultFileId,
+        name: 'main.py',
+        content: defaultCode.python,
+        language: 'python',
+        lastModified: new Date(),
+        isOpen: true
+      }
+    ],
+    activeFileId: defaultFileId,
     isExecuting: false
   });
   
@@ -100,7 +213,7 @@ export default function CodeSandbox() {
     {
       id: '1',
       type: 'info',
-      content: 'SecureCode Sandbox initialized',
+      content: 'CodeVault initialized',
       timestamp: new Date()
     },
     {
@@ -110,6 +223,8 @@ export default function CodeSandbox() {
       timestamp: new Date()
     }
   ]);
+
+  const [showFileUpload, setShowFileUpload] = useState(false);
 
   const { executeCode, isExecuting, lastResult } = useCodeExecution();
   const { 
