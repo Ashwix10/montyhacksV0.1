@@ -36,14 +36,30 @@ export interface TerminalLine {
   timestamp: Date;
 }
 
-export type SupportedLanguage = 'python' | 'javascript' | 'typescript';
+export type SupportedLanguage = 'python' | 'javascript' | 'typescript' | 'cpp' | 'c' | 'java' | 'go' | 'rust' | 'php' | 'ruby';
 
-export type Theme = 'light' | 'dark' | 'vibe';
+
+
+export interface CodeFile {
+  id: string;
+  name: string;
+  content: string;
+  language: SupportedLanguage;
+  lastModified: Date;
+  isOpen?: boolean;
+}
 
 export interface EditorState {
-  code: string;
-  language: SupportedLanguage;
-  filename: string;
+  files: CodeFile[];
+  activeFileId: string | null;
   isExecuting: boolean;
   lastScanTime?: Date;
+}
+
+export interface WorkspaceData {
+  id: string;
+  name: string;
+  files: CodeFile[];
+  createdAt: Date;
+  lastModified: Date;
 }

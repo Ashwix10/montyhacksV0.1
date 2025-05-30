@@ -39,9 +39,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     // Special handling for vibe theme gradient
     if (theme === 'vibe') {
-      document.body.style.background = 'linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab)';
-      document.body.style.backgroundSize = '400% 400%';
-      document.body.style.animation = 'gradient-shift 15s ease infinite';
+      document.body.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)';
+      document.body.style.backgroundSize = '300% 300%';
+      document.body.style.animation = 'gradient-shift 20s ease infinite';
     } else {
       document.body.style.background = '';
       document.body.style.backgroundSize = '';

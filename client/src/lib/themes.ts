@@ -44,3 +44,4 @@ export const themes = {
 } as const;
 
 export type ThemeColors = typeof themes[keyof typeof themes];
+export type Theme = keyof typeof themes;
