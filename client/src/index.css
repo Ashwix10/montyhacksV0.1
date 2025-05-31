@@ -213,7 +213,7 @@
 
 /* File manager enhancements */
 .file-item {
-  @apply relative overflow-hidden group;
+  @apply relative overflow-hidden;
 }
 
 .file-item::before {
